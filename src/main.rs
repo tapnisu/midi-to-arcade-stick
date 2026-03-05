@@ -1,13 +1,8 @@
-use midir::{MidiInput, MidiInputConnection};
+use midir::MidiInput;
 use midly::live::LiveEvent;
-use std::error::Error;
-use std::io::{Write, stdin, stdout};
-
-use std::thread;
-use std::time::Duration;
 use vigem_client::TargetId;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let midi_in = MidiInput::new("midi_listener")?;
     let in_ports = midi_in.ports();
 
@@ -65,10 +60,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
         (),
     )?;
-
-    println!("Press Enter to stop...");
-    let mut input = String::new();
-    stdin().read_line(&mut input)?;
 
     Ok(())
 }

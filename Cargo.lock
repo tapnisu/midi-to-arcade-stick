@@ -148,6 +148,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "midi-to-arcade-stick"
+version = "0.1.0"
+dependencies = [
+ "midir",
+ "midly",
+ "vigem-client",
+]
+
+[[package]]
 name = "midir"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -266,15 +275,6 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
-name = "shiki-nanaya"
-version = "0.1.0"
-dependencies = [
- "midir",
- "midly",
- "vigem-client",
-]
 
 [[package]]
 name = "smallvec"
