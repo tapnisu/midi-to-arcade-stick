@@ -14,7 +14,7 @@ fn key_to_button(key: u8) -> Option<u16> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let midi_in = MidiInput::new("midi_listener")?;
+    let midi_in = MidiInput::new("midi-to-arcade-stick")?;
     let in_ports = midi_in.ports();
 
     if in_ports.is_empty() {
