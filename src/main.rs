@@ -41,11 +41,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(event) = LiveEvent::parse(data) {
                 match event {
                     LiveEvent::Midi { message, .. } => match message {
-                        midly::MidiMessage::NoteOn { key, vel: _ } => {
+                        midly::MidiMessage::NoteOn { key, vel } => {
+                            if vel == 66 {
+                                gamepad_pressed.left_trigger = u8::from(vel) * 2;
+                            }
+
+                            if vel == 68 {
+                                gamepad_pressed.left_trigger = u8::from(vel) * 2;
+                            }
+
                             if let Some(button_bit) = key_to_button(key.as_int()) {
                                 gamepad_pressed.buttons.raw |= button_bit;
-                                let _ = target.update(&gamepad_pressed);
                             }
+
+                            let _ = target.update(&gamepad_pressed);
                             println!("Key pressed: {}", key);
                         }
                         midly::MidiMessage::NoteOff { key, .. } => {
