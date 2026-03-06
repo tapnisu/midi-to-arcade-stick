@@ -4,11 +4,11 @@ use vigem_client::{TargetId, XButtons, XGamepad};
 
 fn key_to_button(key: u8) -> Option<u16> {
     match key {
-        59 => Some(XButtons::UP),
-        61 => Some(XButtons::X),
-        62 => Some(XButtons::A),
-        63 => Some(XButtons::B),
-        64 => Some(XButtons::Y),
+        64 => Some(XButtons::UP),
+        65 => Some(XButtons::X),
+        67 => Some(XButtons::A),
+        69 => Some(XButtons::B),
+        71 => Some(XButtons::Y),
         _ => None,
     }
 }
@@ -41,34 +41,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(event) = LiveEvent::parse(data) {
                 match event {
                     LiveEvent::Midi { message, .. } => match message {
-                        midly::MidiMessage::NoteOn { key, vel } => {
+                        midly::MidiMessage::NoteOn { key, vel: _ } => {
                             if let Some(button_bit) = key_to_button(key.as_int()) {
-                                if vel.as_int() > 0 {
-                                    gamepad_pressed.buttons.raw |= button_bit;
-                                    println!("Key pressed: {}", key);
-                                } else {
-                                    gamepad_pressed.buttons.raw &= !button_bit;
-                                    println!("Key released (velocity 0): {}", key);
-                                }
+                                gamepad_pressed.buttons.raw |= button_bit;
                                 let _ = target.update(&gamepad_pressed);
                             }
+                            println!("Key pressed: {}", key);
                         }
                         midly::MidiMessage::NoteOff { key, .. } => {
                             if let Some(button_bit) = key_to_button(key.as_int()) {
                                 gamepad_pressed.buttons.raw &= !button_bit;
-                                println!("Key released: {}", key);
                                 let _ = target.update(&gamepad_pressed);
                             }
+                            println!("Key released: {}", key);
                         }
                         midly::MidiMessage::PitchBend { bend } => {
                             gamepad_pressed.thumb_lx = bend.as_int() as i16 * 4;
                             let _ = target.update(&gamepad_pressed);
+                            println!("Pitch changed: {}", bend.as_int());
                         }
                         midly::MidiMessage::Controller { controller, value } => {
                             if controller.as_int() == 1 {
                                 gamepad_pressed.thumb_ly = value.as_int() as i16 * -256 + -1;
                                 let _ = target.update(&gamepad_pressed);
                             }
+                            println!("Mod changed: {}", value.as_int());
                         }
                         _ => {}
                     },
