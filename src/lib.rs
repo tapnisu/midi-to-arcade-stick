@@ -1,3 +1,7 @@
+mod midi;
+
+pub use midi::MidiController;
+
 #[cfg(target_os = "windows")]
 mod windows;
 
@@ -6,9 +10,9 @@ pub enum GamepadButton {
     DpadDown,
     DpadLeft,
     DpadRight,
-    X,
     A,
     B,
+    X,
     Y,
     LB,
     RB,
