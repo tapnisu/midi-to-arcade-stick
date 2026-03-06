@@ -33,9 +33,9 @@ jobs:
         with:
           target: ${{ matrix.target }}
 
-      - name: Install alsa-lib
+      - name: Install alsa
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install alsa-lib
+        run: sudo apt-get update && sudo apt-get install libasound2-dev
 
       - name: Publish to crates.io
         if: matrix.target == 'x86_64-unknown-linux-gnu'
