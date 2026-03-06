@@ -23,6 +23,8 @@ pub enum GamepadButton {
 pub enum GamepadThumb {
     ThumbLX,
     ThumbLY,
+    ThumbRX,
+    ThumbRY,
 }
 
 pub trait VirtualGamepad {

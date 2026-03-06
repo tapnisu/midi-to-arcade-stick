@@ -67,6 +67,8 @@ impl VirtualGamepad for Gamepad {
         match axis {
             GamepadThumb::ThumbLX => self.xgamepad.thumb_lx = value,
             GamepadThumb::ThumbLY => self.xgamepad.thumb_ly = value,
+            GamepadThumb::ThumbRX => self.xgamepad.thumb_rx = value,
+            GamepadThumb::ThumbRY => self.xgamepad.thumb_ry = value,
         }
     }
 
