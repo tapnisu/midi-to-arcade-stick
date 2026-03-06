@@ -1,6 +1,7 @@
 [package]
 name = "midi-to-arcade-stick"
 version = "0.1.0"
+edition = "2024"
 readme = "README.md"
 authors = ["Aleksei Rybin <aleksei@tapni.su>"]
 description = "Convert midi keyboard inputs to xinput"

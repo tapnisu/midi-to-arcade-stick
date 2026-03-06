@@ -1,10 +1,30 @@
 use midir::MidiInput;
 use midly::live::LiveEvent;
-use vigem_client::TargetId;
+use vigem_client::{TargetId, XButtons, XGamepad};
+
+fn key_to_button(key: u8) -> Option<u16> {
+    match key {
+        59 => Some(XButtons::UP),
+        61 => Some(XButtons::X),
+        62 => Some(XButtons::A),
+        63 => Some(XButtons::B),
+        64 => Some(XButtons::Y),
+        _ => None,
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let midi_in = MidiInput::new("midi_listener")?;
     let in_ports = midi_in.ports();
+
+    if in_ports.is_empty() {
+        println!("No MIDI inputs found");
+        return Ok(());
+    }
+
+    let port = &in_ports[0];
+    let port_name = midi_in.port_name(port)?;
+    println!("Connected to MIDI: {}", port_name);
 
     let client = vigem_client::Client::connect().unwrap();
     let mut target = vigem_client::Xbox360Wired::new(client, TargetId::XBOX360_WIRED);
@@ -12,17 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     target.plugin().unwrap();
     target.wait_ready().unwrap();
 
-    if in_ports.is_empty() {
-        unimplemented!()
-    }
-
-    let port = &in_ports[0];
-    let port_name = midi_in.port_name(port)?;
-
-    let mut gamepad_pressed = vigem_client::XGamepad {
-        buttons: vigem_client::XButtons!(A),
-        ..Default::default()
-    };
+    let mut gamepad_pressed = XGamepad::default();
 
     let _conn = midi_in.connect(
         port,
@@ -30,26 +40,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         move |_timestamp, data, _| {
             if let Ok(event) = LiveEvent::parse(data) {
                 match event {
-                    LiveEvent::Midi {
-                        channel: _,
-                        message,
-                    } => match message {
+                    LiveEvent::Midi { message, .. } => match message {
                         midly::MidiMessage::NoteOn { key, vel } => {
-                            println!("Key Pressed:  {} (Velocity: {})", key, vel);
+                            if let Some(button_bit) = key_to_button(key.as_int()) {
+                                if vel.as_int() > 0 {
+                                    gamepad_pressed.buttons.raw |= button_bit;
+                                    println!("Key pressed: {}", key);
+                                } else {
+                                    gamepad_pressed.buttons.raw &= !button_bit;
+                                    println!("Key released (velocity 0): {}", key);
+                                }
+                                let _ = target.update(&gamepad_pressed);
+                            }
                         }
                         midly::MidiMessage::NoteOff { key, .. } => {
-                            println!("Key Released: {}", key);
+                            if let Some(button_bit) = key_to_button(key.as_int()) {
+                                gamepad_pressed.buttons.raw &= !button_bit;
+                                println!("Key released: {}", key);
+                                let _ = target.update(&gamepad_pressed);
+                            }
                         }
                         midly::MidiMessage::PitchBend { bend } => {
-                            gamepad_pressed.thumb_lx = bend.as_int() * 4;
+                            gamepad_pressed.thumb_lx = bend.as_int() as i16 * 4;
                             let _ = target.update(&gamepad_pressed);
                         }
                         midly::MidiMessage::Controller { controller, value } => {
                             if controller.as_int() == 1 {
                                 gamepad_pressed.thumb_ly = value.as_int() as i16 * -256 + -1;
                                 let _ = target.update(&gamepad_pressed);
-                            } else {
-                                println!("Control #{} value: {}", controller, value);
                             }
                         }
                         _ => {}
