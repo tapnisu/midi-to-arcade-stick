@@ -4,29 +4,36 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use midly::live::LiveEvent;
+use midly::{live::LiveEvent, num::u7};
 
 use crate::{Gamepad, GamepadButton, GamepadThumb, VirtualGamepad};
 
 pub struct MidiController {
     gamepad: Gamepad,
+    config: MidiControllerConfig,
+}
+
+#[derive(Default)]
+pub struct MidiControllerConfig {
     binds: HashMap<u8, GamepadButton>,
+    enable_rt_value: bool,
+    enable_lt_value: bool,
 }
 
 impl MidiController {
     pub fn new(gamepad: Gamepad, config_path: &str) -> Self {
-        let binds = Self::load_keybinds(config_path);
-        Self { gamepad, binds }
+        let config = Self::load_keybinds(config_path);
+        Self { gamepad, config }
     }
 
-    fn load_keybinds(path: &str) -> HashMap<u8, GamepadButton> {
-        let mut binds = HashMap::new();
+    fn load_keybinds(path: &str) -> MidiControllerConfig {
+        let mut config = MidiControllerConfig::default();
 
         let file = match File::open(path) {
             Ok(f) => f,
             Err(_) => {
                 println!("{} not found", path);
-                return binds;
+                return config;
             }
         };
 
@@ -56,11 +63,27 @@ impl MidiController {
                 };
 
                 if let Some(btn) = button {
-                    binds.insert(midi_id, btn);
+                    config.binds.insert(midi_id, btn);
                 }
             }
+
+            if parts.len() >= 2 && (parts[0] == "enable_rt_value") {
+                config.enable_rt_value = match parts[1] {
+                    "true" => true,
+                    "false" => false,
+                    _ => continue,
+                };
+            }
+
+            if parts.len() >= 2 && (parts[0] == "enable_lt_value") {
+                config.enable_lt_value = match parts[1] {
+                    "true" => true,
+                    "false" => false,
+                    _ => continue,
+                };
+            }
         }
-        binds
+        config
     }
 
     pub fn handle_midi_input(&mut self, data: &[u8]) {
@@ -69,14 +92,21 @@ impl MidiController {
         {
             match message {
                 midly::MidiMessage::NoteOn { key, vel } => {
-                    if let Some(button) = self.binds.get(&key.as_int()) {
+                    if let Some(button) = self.config.binds.get(&key.as_int()) {
+                        let enable_value = match button {
+                            GamepadButton::LT => self.config.enable_lt_value,
+                            GamepadButton::RT => self.config.enable_rt_value,
+                            _ => false,
+                        };
+                        let enabled_vel = if enable_value { vel } else { u7::max_value() };
+
                         self.gamepad
-                            .press_button(button, vel.as_int().saturating_mul(2));
+                            .press_button(button, enabled_vel.as_int().saturating_mul(2));
                         self.gamepad.update();
                     }
                 }
                 midly::MidiMessage::NoteOff { key, .. } => {
-                    if let Some(button) = self.binds.get(&key.as_int()) {
+                    if let Some(button) = self.config.binds.get(&key.as_int()) {
                         self.gamepad.release_button(button);
                         self.gamepad.update();
                     }
