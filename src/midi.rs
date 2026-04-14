@@ -4,7 +4,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use midly::{live::LiveEvent, num::u7};
+use midly::{MidiMessage, live::LiveEvent, num::u7};
 
 use crate::{Gamepad, GamepadButton, GamepadThumb, VirtualGamepad};
 
@@ -91,7 +91,8 @@ impl MidiController {
             && let LiveEvent::Midi { message, .. } = event
         {
             match message {
-                midly::MidiMessage::NoteOn { key, vel } => {
+                MidiMessage::NoteOn { key, vel } => {
+                    println!("key pressed {}", key.as_int());
                     if let Some(button) = self.config.binds.get(&key.as_int()) {
                         let enable_value = match button {
                             GamepadButton::LT => self.config.enable_lt_value,
@@ -105,24 +106,42 @@ impl MidiController {
                         self.gamepad.update();
                     }
                 }
-                midly::MidiMessage::NoteOff { key, .. } => {
+                MidiMessage::NoteOff { key, .. } => {
                     if let Some(button) = self.config.binds.get(&key.as_int()) {
                         self.gamepad.release_button(button);
                         self.gamepad.update();
                     }
                 }
-                midly::MidiMessage::PitchBend { bend } => {
+                MidiMessage::PitchBend { bend } => {
+                    // self.gamepad
+                    //     .update_axis(&GamepadThumb::ThumbLX, bend.as_int().saturating_mul(4));
                     self.gamepad
-                        .update_axis(&GamepadThumb::ThumbLX, bend.as_int().saturating_mul(4));
+                        .update_axis(&GamepadThumb::ThumbLY, bend.as_int().saturating_mul(4));
                     self.gamepad.update();
                 }
                 midly::MidiMessage::Controller { controller, value } => {
-                    if controller.as_int() == 1 {
-                        let val = (value.as_int() as i16).saturating_mul(-256);
-                        self.gamepad.update_axis(&GamepadThumb::ThumbLY, val);
-                        self.gamepad.update();
+                    match controller.as_int() {
+                        1 => {
+                            // let val = (value.as_int() as i16).saturating_mul(-256);
+                            // self.gamepad.update_axis(&GamepadThumb::ThumbLY, val);
+                            // self.gamepad.update();
+
+                            // Modwheel
+                            let val = (value.as_int() as i16).saturating_mul(256);
+                            self.gamepad.update_axis(&GamepadThumb::ThumbLX, val);
+                            self.gamepad.update();
+                        }
+
+                        11 => {
+                            // Expression
+                            let val = (127 - value.as_int() as i16).saturating_mul(-256);
+                            self.gamepad.update_axis(&GamepadThumb::ThumbLX, val);
+                            self.gamepad.update();
+                        }
+                        _ => {}
                     }
                 }
+
                 _ => {}
             }
         }
